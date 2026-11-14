@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>SHRUNK</title>
+<script type="importmap">
+{ "imports": {
+  "three": "./lib/three.module.js",
+  "three/addons/": "./lib/addons/"
+} }
+</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b0f0d;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;color:#fff}
+  #c{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:.3em;color:#9fffe0;background:#0b0f0d;z-index:50}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;
+    background:radial-gradient(ellipse at center,rgba(5,20,15,.35),rgba(0,0,0,.78));backdrop-filter:blur(3px);z-index:20}
+  h1{font-size:clamp(56px,13vw,140px);font-weight:900;letter-spacing:-.04em;line-height:.9;
+    background:linear-gradient(180deg,#eafff6,#5effc8);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 30px rgba(94,255,200,.35))}
+  h2{font-size:clamp(28px,6vw,54px);font-weight:800}
+  .story{max-width:540px;font-size:clamp(15px,2.2vw,19px);line-height:1.5;color:#d8efe6}
+  .btn{pointer-events:auto;border:0;border-radius:999px;padding:14px 38px;font-size:18px;font-weight:700;color:#04140e;background:#5effc8;cursor:pointer;box-shadow:0 8px 30px rgba(94,255,200,.35)}
+  .btn.ghost{background:rgba(255,255,255,.12);color:#fff;box-shadow:none}
+  .controls{font-size:13px;color:#a9c9bd;line-height:1.8;max-width:560px}
+  kbd{background:rgba(255,255,255,.14);border-radius:6px;padding:2px 7px;font-family:inherit;font-size:12px}
+  #hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:10}
+  .bars{position:absolute;left:18px;bottom:18px;width:min(260px,40vw);display:flex;flex-direction:column;gap:7px}
+  .bar{height:9px;border-radius:9px;background:rgba(0,0,0,.45);overflow:hidden;backdrop-filter:blur(6px)}
+  .bar i{display:block;height:100%;border-radius:9px;transition:width .15s}
+  #hp{background:linear-gradient(90deg,#ff5252,#ff8a65)} #st{background:linear-gradient(90deg,#ffd54f,#fff59d)} #air{background:linear-gradient(90deg,#4fc3f7,#b3e5fc)}
+  .lbl{font-size:10px;letter-spacing:.18em;color:rgba(255,255,255,.7);margin-bottom:-3px}
+  #comp{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 16px 8px 10px;border-radius:999px;background:rgba(0,0,0,.42);backdrop-filter:blur(8px);font-size:13px;font-weight:600;white-space:nowrap}
+  #arrow{width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:#5effc8;font-size:20px;transition:transform .08s linear}
+  #timer{position:absolute;top:18px;right:18px;font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,.4)}
+  #flavor{position:absolute;top:64px;left:50%;transform:translateX(-50%);font-size:14px;font-style:italic;color:#eafff6;text-shadow:0 2px 10px #000;transition:opacity .6s;opacity:0;white-space:nowrap}
+  #warn{position:absolute;top:34%;left:50%;transform:translateX(-50%);font-size:clamp(16px,2.6vw,24px);font-weight:900;color:#ff5a4f;text-shadow:0 2px 14px #000;text-align:center;transition:opacity .2s;opacity:0;width:90%}
+  #toast{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:999px;background:rgba(0,0,0,.55);font-weight:700;font-size:15px;transition:opacity .4s;opacity:0;white-space:nowrap}
+  #flash{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,.8));opacity:0;transition:opacity .25s;pointer-events:none;z-index:11}
+  #cross{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:rgba(255,255,255,.6)}
+  #touch{position:fixed;inset:0;pointer-events:none;display:none;z-index:12}
+  #joy{position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);display:none}
+  #knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
+  .tb{position:absolute;pointer-events:auto;width:70px;height:70px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-weight:800;font-size:13px;backdrop-filter:blur(6px)}
+  #bJump{right:22px;bottom:calc(40px + env(safe-area-inset-bottom))} #bAtk{right:104px;bottom:calc(22px + env(safe-area-inset-bottom))} #bRun{right:30px;bottom:calc(124px + env(safe-area-inset-bottom));width:58px;height:58px}
+  #bRun.on{background:rgba(255,213,79,.55)} #bPause{right:18px;top:60px;width:44px;height:44px;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">LOADING…</div>
+
+<div id="hud">
+  <div id="comp"><div id="arrow">➤</div><span id="dist"></span></div>
+  <div id="timer">0:00</div>
+  <div id="flavor"></div>
+  <div id="warn"></div>
+  <div id="toast"></div>
+  <div id="cross"></div>
+  <div class="bars">
+    <div class="lbl">HEALTH</div><div class="bar"><i id="hp" style="width:100%"></i></div>
+    <div class="lbl">STAMINA</div><div class="bar"><i id="st" style="width:100%"></i></div>
+    <div id="airw" style="display:none"><div class="lbl">AIR</div><div class="bar"><i id="air" style="width:100%"></i></div></div>
+  </div>
+</div>
+<div id="flash"></div>
+
+<div id="touch">
+  <div id="joy"><div id="knob"></div></div>
+  <button class="tb" id="bJump">JUMP</button>
+  <button class="tb" id="bAtk">HIT</button>
+  <button class="tb" id="bRun">RUN</button>
+  <button class="tb" id="bPause">II</button>
+</div>
+
+<div class="screen" id="title">
+  <h1>SHRUNK</h1>
+  <p class="story">Experiment 7 went wrong. You're <b>1 cm tall</b>.<br>A crow snatched you from the lab and dropped you in Central Park.<br>Get back to the lab.</p>
+  <button class="btn" id="playBtn">Play</button>
+  <p class="controls"><kbd>WASD</kbd> move · <kbd>Mouse</kbd> look (click to lock) · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Click</kbd> attack · <kbd>Esc</kbd> pause<br>Phone: left thumb moves, right thumb looks. Hide under leaves, cups and awnings when the crow dives. Stay out of the red when a shoe comes down.</p>
+</div>
+<div class="screen" id="pause">
+  <h2>Paused</h2>
+  <p class="controls"><kbd>WASD</kbd> move · <kbd>Mouse</kbd> look · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Click</kbd>/<kbd>F</kbd> attack<br>Follow the green arrow. Dew drops and crumbs heal you. Find the toothpick spear near the start.</p>
+  <button class="btn" id="resumeBtn">Resume</button>
+</div>
+<div class="screen" id="dead">
+  <h2>You got squashed.</h2>
+  <p class="story">At 1 cm, everything is a threat.</p>
+  <button class="btn" id="respawnBtn">Respawn at checkpoint</button>
+</div>
+<div class="screen" id="win">
+  <h1 style="font-size:clamp(40px,9vw,96px)">BACK AT THE LAB</h1>
+  <p class="story">You slipped under the door in <b id="winTime"></b>. Now, about that un-shrink ray…</p>
+  <button class="btn" id="againBtn">Play again</button>
+</div>
+
+<script type="module" src="js/main.js"></script>
+<script>
+  window.addEventListener('error', e => { const l = document.getElementById('loading'); l.style.display = 'flex'; l.style.letterSpacing = '0'; l.style.padding = '30px'; l.textContent = 'Error: ' + e.message; });
+</script>
+</body>
+</html>
